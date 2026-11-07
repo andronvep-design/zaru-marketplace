@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZARU — Современный Маркетплейс</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Babel CDN for React/JSX compilation in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Feather Icons CDN -->
+  <script src="https://unpkg.com/feather-icons"></script>
+
+  <!-- Custom Scrollbar & Fonts -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased selection:bg-purple-500 selection:text-white">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Feather Icon Helper Component
+    const Icon = ({ name, className = "w-5 h-5", onClick }) => {
+      useEffect(() => {
+        if (window.feather) {
+          window.feather.replace();
+        }
+      }, [name]);
+      return <i data-feather={name} className={className} onClick={onClick}></i>;
+    };
+
+    // --- MOCK DATA ---
+    const PICKUP_POINTS = [
+      "Тирасполь, ул. 25 Октября, 42 (ПВЗ ZARU #1)",
+      "Бендеры, ул. Суворова, 18 (ПВЗ ZARU #2)",
+      "Рыбница, пр. Победы, 7 (ПВЗ ZARU #3)",
+      "Дубоссары, ул. Ленина, 53 (ПВЗ ZARU #4)"
+    ];
+
+    const HERO_SLIDES = [
+      {
+        id: 1,
+        tag: "ГРАНДИОЗНАЯ РАСПРОДАЖА",
+        title: "Скидки до 70% на всю электронику ZARU Tech",
+        subtitle: "Смартфоны, беспроводные наушники и гаджеты по лучшим ценам сезона",
+        bg: "from-purple-900 via-indigo-900 to-slate-950",
+        accent: "text-amber-400",
+        btnText: "Перейти к скидкам",
+        category: "Электроника"
+      },
+      {
+        id: 2,
+        tag: "ЭКСПРЕСС-ДОСТАВКА ZARU",
+        title: "Доставим в любой ПВЗ бесплатно за 24 часа",
+        subtitle: "Более 500 пунктов выдачи заказов с комфортными примерочными",
+        bg: "from-slate-900 via-purple-950 to-indigo-950",
+        accent: "text-purple-400",
+        btnText: "Выбрать ПВЗ",
+        category: "Все"
+      },
+      {
+        id: 3,
+        tag: "NEW SEASON FASHION",
+        title: "Новая весенняя коллекция одежды",
+        subtitle: "Оверсайз худи, куртки, кроссовки и аксессуары от топовых брендов",
+        bg: "from-fuchsia-950 via-purple-900 to-purple-950",
+        accent: "text-emerald-400",
+        btnText: "Смотреть образ",
+        category: "Одежда & Обувь"
+      }
+    ];
+
+    // Demo Logged In User Preset
+    const DEMO_USER = {
+      name: "Александр Смирнов",
+      email: "alex.smirnov@zaru.ru",
+      phone: "+7 (999) 123-45-67",
+      role: "seller", // buyer | seller
+      status: "ZARU Gold Club",
+      bonusPoints: 1250,
+      avatarUrl: "",
+      addresses: ["Тирасполь, ул. 25 Октября, 42", "Бендеры, ул. Суворова, 18"],
+      cards: [
+        { id: 1, type: "Visa ZARU", number: "•••• 4821", expiry: "12/28" },
+        { id: 2, type: "MasterCard", number: "•••• 9102", expiry: "08/27" }
+      ],
+      notifications: { email: true, sms: true, promo: false }
+    };
+
+    // Initial Mock Catalog Products
+    const INITIAL_PRODUCTS = [
+      {
+        id: 1,
+        title: "Беспроводные полноразмерные наушники ZARU SoundPro Max ANC",
+        category: "Электроника",
+        price: 4990,
+        oldPrice: 8990,
+        rating: 4.9,
+        reviewsCount: 342,
+        seller: "ZARU Audio Official",
+        stock: 45,
+        status: "approved",
+        isNew: true,
+        image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+        description: "Флагманские наушники с активным шумоподавлением, 40 часами автономности и глубоким басом."
+      },
+      {
+        id: 2,
+        title: "Кроссовки Urban Runner Streetwear Unisex Black",
+        category: "Одежда & Обувь",
+        price: 3200,
+        oldPrice: 5500,
+        rating: 4.8,
+        reviewsCount: 189,
+        seller: "FootWear Store",
+        stock: 18,
+        status: "approved",
+        isNew: false,
+        image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
+        description: "Легкие дышащие кроссовки для городских прогулок и занятий спортом."
+      },
+      {
+        id: 3,
+        title: "Умные часы ZARU Watch Series 7 Pro Metallic",
+        category: "Электроника",
+        price: 6490,
+        oldPrice: 9990,
+        rating: 4.7,
+        reviewsCount: 95,
+        seller: "ZARU Official Store",
+        stock: 12,
+        status: "approved",
+        isNew: true,
+        image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+        description: "Мониторинг пульса, SpO2, более 100 спортивных режимов и яркий AMOLED-дисплей."
+      },
+      {
+        id: 4,
+        title: "Оверсайз худи из плотного хлопка ZARU Wear Purple",
+        category: "Одежда & Обувь",
+        price: 2790,
+        oldPrice: 4200,
+        rating: 4.9,
+        reviewsCount: 512,
+        seller: "ZARU Wear",
+        stock: 60,
+        status: "approved",
+        isNew: false,
+        image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80",
+        description: "Уютный оверсайз худи с начесом премиального качества 330 г/м²."
+      },
+      {
+        id: 5,
+        title: "Увлажнитель воздуха ультразвуковой Smart Mist Pro",
+        category: "Дом & Быт",
+        price: 2190,
+        oldPrice: 3800,
+        rating: 4.6,
+        reviewsCount: 78,
+        seller: "HomeTech Systems",
+        stock: 25,
+        status: "approved",
+        isNew: false,
+        image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=600&q=80",
+        description: "Бесшумная работа, резервуар на 4 литра, контейнер для аромамасел."
+      },
+      {
+        id: 6,
+        title: "Набор сывороток для ухода за кожей лица Glow Care Kit",
+        category: "Красота & Здоровье",
+        price: 1890,
+        oldPrice: 2990,
+        rating: 4.9,
+        reviewsCount: 230,
+        seller: "Beauty Lab",
+        stock: 33,
+        status: "approved",
+        isNew: true,
+        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80",
+        description: "Комплексный уход с гиалуроновой кислотой и витамином C."
+      }
+    ];
+
+    // Main Marketplace App Component
+    function ZaruMarketplace() {
+      // Global View Mode: 'store' | 'seller' | 'admin'
+      const [viewMode, setViewMode] = useState("store");
+
+      // Store Tab Navigation: 'home' | 'catalog' | 'wishlist' | 'account'
+      const [currentTab, setCurrentTab] = useState("home");
+      
+      // Products & Filters State
+      const [products, setProducts] = useState(INITIAL_PRODUCTS);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [selectedCategory, setSelectedCategory] = useState("Все");
+      const [selectedProduct, setSelectedProduct] = useState(null);
+
+      // Location / Pickup Point Selection
+      const [selectedLocation, setSelectedLocation] = useState(PICKUP_POINTS[0]);
+
+      // User lists state
+      const [cart, setCart] = useState([]);
+      const [favorites, setFavorites] = useState([]);
+      const [orders, setOrders] = useState([
+        {
+          id: "ZR-849201",
+          date: "24 Октября 2026",
+          items: [
+            { id: 1, title: "Беспроводные наушники ZARU SoundPro Max ANC", price: 4990, quantity: 1, image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80" }
+          ],
+          total: 4990,
+          address: "Тирасполь, ул. 25 Октября, 42",
+          status: "В пути",
+          step: 2 // 1: Оформлен, 2: В пути, 3: Доставлен в ПВЗ
+        }
+      ]);
+      
+      // Authentication & User Profile State
+      const [currentUser, setCurrentUser] = useState(DEMO_USER); // DEMO_USER or null
+      const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+      const [authTab, setAuthTab] = useState("login"); // login | register
+      const [authForm, setAuthForm] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "buyer"
+      });
+      const [profileTab, setProfileTab] = useState("orders"); // orders | profile | addresses | cards | settings
+      const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+      // New Address & Card state forms inside profile
+      const [newAddressInput, setNewAddressInput] = useState("");
+      const [newCardInput, setNewCardInput] = useState({ number: "", expiry: "" });
+
+      // Modals & Sliders
+      const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+      const [currentSlide, setCurrentSlide] = useState(0);
+      const [toastMessage, setToastMessage] = useState(null);
+
+      // Seller State
+      const [newProductForm, setNewProductForm] = useState({
+        title: "",
+        category: "Электроника",
+        price: "",
+        oldPrice: "",
+        stock: "",
+        image: "",
+        description: ""
+      });
+
+      // Admin State
+      const [commissionRate, setCommissionRate] = useState(12);
+
+      // Toast Notification Helper
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 3500);
+      };
+
+      // Banner Auto Slider
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+        }, 6000);
+        return () => clearInterval(timer);
+      }, []);
+
+      // Filtered Products
+      const filteredProducts = products.filter((item) => {
+        const matchesCategory = selectedCategory === "Все" || item.category === selectedCategory;
+        const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              item.category.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch && item.status === "approved";
+      });
+
+      // Cart Calculations
+      const cartTotalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const cartTotalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+      // Cart Actions
+      const addToCart = (product, e) => {
+        if (e) e.stopPropagation();
+        setCart((prevCart) => {
+          const existing = prevCart.find((item) => item.id === product.id);
+          if (existing) {
+            return prevCart.map((item) =>
+              item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+            );
+          }
+          return [...prevCart, { ...product, quantity: 1 }];
+        });
+        showToast(`Товар "${product.title.slice(0, 20)}..." добавлен в корзину`);
+      };
+
+      const updateCartQuantity = (id, delta) => {
+        setCart((prevCart) =>
+          prevCart
+            .map((item) => {
+              if (item.id === id) {
+                const newQty = item.quantity + delta;
+                return newQty > 0 ? { ...item, quantity: newQty } : null;
+              }
+              return item;
+            })
+            .filter(Boolean)
+        );
+      };
+
+      // Favorites Action
+      const toggleFavorite = (product, e) => {
+        if (e) e.stopPropagation();
+        if (favorites.some((item) => item.id === product.id)) {
+          setFavorites(favorites.filter((item) => item.id !== product.id));
+          showToast("Удалено из избранного");
+        } else {
+          setFavorites([...favorites, product]);
+          showToast("Добавлено в избранное");
+        }
+      };
+
+      // User Auth Handlers
+      const handleLogin = (e) => {
+        e.preventDefault();
+        if (!authForm.email || !authForm.password) {
+          showToast("Введите Email и Пароль");
+          return;
+        }
+        setCurrentUser({
+          ...DEMO_USER,
+          email: authForm.email,
+          name: authForm.email.split('@')[0]
+        });
+        setIsAuthModalOpen(false);
+        showToast("Добро пожаловать в ZARU!");
+      };
+
+      const handleRegister = (e) => {
+        e.preventDefault();
+        if (!authForm.name || !authForm.email || !authForm.password) {
+          showToast("Заполните все обязательные поля");
+          return;
+        }
+        const newUser = {
+          name: authForm.name,
+          email: authForm.email,
+          phone: authForm.phone || "+7 (900) 000-00-00",
+          role: authForm.role,
+          status: "ZARU Club Newbie",
+          bonusPoints: 300,
+          addresses: [PICKUP_POINTS[0]],
+          cards: [],
+          notifications: { email: true, sms: true, promo: true }
+        };
+        setCurrentUser(newUser);
+        setIsAuthModalOpen(false);
+        showToast("Регистрация успешна! Вам начислено 300 бонусов.");
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        setIsUserMenuOpen(false);
+        setCurrentTab("home");
+        showToast("Вы вышли из аккаунта ZARU");
+      };
+
+      const handleAddAddress = () => {
+        if (!newAddressInput.trim()) return;
+        setCurrentUser(prev => ({
+          ...prev,
+          addresses: [...(prev.addresses || []), newAddressInput.trim()]
+        }));
+        setNewAddressInput("");
+        showToast("Новый адрес ПВЗ добавлен");
+      };
+
+      const handleAddCard = () => {
+        if (!newCardInput.number || !newCardInput.expiry) return;
+        const newCard = {
+          id: Date.now(),
+          type: "MIR / Visa ZARU",
+          number: "•••• " + newCardInput.number.slice(-4),
+          expiry: newCardInput.expiry
+        };
+        setCurrentUser(prev => ({
+          ...prev,
+          cards: [...(prev.cards || []), newCard]
+        }));
+        setNewCardInput({ number: "", expiry: "" });
+        showToast("Карта привязана к ZARU Pay");
+      };
+
+      // Checkout Handler
+      const handleCheckout = () => {
+        if (cart.length === 0) return;
+        if (!currentUser) {
+          setIsAuthModalOpen(true);
+          showToast("Пожалуйста, войдите в аккаунт для оформления");
+          return;
+        }
+        const newOrder = {
+          id: "ZR-" + Math.floor(100000 + Math.random() * 900000),
+          date: new Date().toLocaleDateString("ru-RU", { day: 'numeric', month: 'long', year: 'numeric' }),
+          items: [...cart],
+          total: cartTotalPrice,
+          address: selectedLocation,
+          status: "В обработке",
+          step: 1
+        };
+        setOrders([newOrder, ...orders]);
+        setCart([]);
+        setIsCartDrawerOpen(false);
+        setCurrentTab("account");
+        setProfileTab("orders");
+        showToast(`Заказ ${newOrder.id} успешно оформлен!`);
+      };
+
+      // Add Product Handler (Seller Studio)
+      const handleAddProduct = (e) => {
+        e.preventDefault();
+        if (!newProductForm.title || !newProductForm.price) {
+          showToast("Заполните название и цену товара");
+          return;
+        }
+        const newProd = {
+          id: Date.now(),
+          title: newProductForm.title,
+          category: newProductForm.category,
+          price: Number(newProductForm.price),
+          oldPrice: newProductForm.oldPrice ? Number(newProductForm.oldPrice) : Number(newProductForm.price) * 1.3,
+          rating: 5.0,
+          reviewsCount: 1,
+          seller: currentUser?.name || "Новый Продавец",
+          stock: Number(newProductForm.stock) || 10,
+          status: "pending",
+          isNew: true,
+          image: newProductForm.image || "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80",
+          description: newProductForm.description || "Описание товара..."
+        };
+        setProducts([newProd, ...products]);
+        setNewProductForm({ title: "", category: "Электроника", price: "", oldPrice: "", stock: "", image: "", description: "" });
+        showToast("Товар отправлен на модерацию ZARU!");
+      };
+
+      // Admin Action: Approve / Reject
+      const handleModeration = (id, newStatus) => {
+        setProducts(products.map(p => p.id === id ? { ...p, status: newStatus } : p));
+        showToast(newStatus === "approved" ? "Товар одобрен и опубликован!" : "Товар отклонен");
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-100">
+
+          {/* TOAST NOTIFICATION */}
+          {toastMessage && (
+            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-purple-500/30 animate-bounce">
+              <div className="w-2.5 h-2.5 bg-amber-400 rounded-full"></div>
+              <span>{toastMessage}</span>
+            </div>
+          )}
+
+          {/* TOP GLOBAL SWITCHER BANNER */}
+          <div className="bg-slate-950 text-slate-300 text-xs py-2 px-4 border-b border-purple-900/30 flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-2 font-medium">
+              <span className="bg-purple-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest">ECOSYSTEM</span>
+              <span className="hidden sm:inline">Переключение рабочих режимов платформы ZARU:</span>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setViewMode("store")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                  viewMode === "store" ? "bg-purple-700 text-white shadow" : "hover:bg-slate-800 text-slate-400"
+                }`}
+              >
+                🛒 Магазин (Покупатель)
+              </button>
+              <button
+                onClick={() => setViewMode("seller")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                  viewMode === "seller" ? "bg-purple-700 text-white shadow" : "hover:bg-slate-800 text-slate-400"
+                }`}
+              >
+                🏪 ZARU Seller (Продавец)
+              </button>
+              <button
+                onClick={() => setViewMode("admin")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                  viewMode === "admin" ? "bg-purple-700 text-white shadow" : "hover:bg-slate-800 text-slate-400"
+                }`}
+              >
+                🛡️ Админ & Логистика
+              </button>
+            </div>
+          </div>
+
+          {/* STORE HEADER */}
+          <header className="sticky top-0 z-40 bg-purple-950 text-white shadow-xl border-b border-purple-900/40">
+            {/* Top Info Strip */}
+            <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between items-center text-[11px] border-b border-purple-900/50 text-purple-200">
+              <div className="flex items-center gap-4">
+                {/* Location Select Dropdown */}
+                <div className="flex items-center gap-1.5 bg-purple-900/60 hover:bg-purple-900 px-2.5 py-1 rounded-xl cursor-pointer transition">
+                  <Icon name="map-pin" className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-bold text-white">ПВЗ:</span>
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="bg-transparent text-purple-100 font-medium focus:outline-none cursor-pointer"
+                  >
+                    {PICKUP_POINTS.map((pt, idx) => (
+                      <option key={idx} value={pt} className="bg-purple-950 text-white">{pt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <span className="hidden md:inline text-purple-300">Бесплатная доставка до ПВЗ от 1000 ₽</span>
+              </div>
+
+              <div className="flex items-center gap-4 font-semibold">
+                <a href="#sellers" onClick={() => setViewMode("seller")} className="hover:text-amber-300 transition">Продавайте на ZARU</a>
+                <a href="#pvz" onClick={() => showToast("Открытие франшизы ПВЗ ZARU: +7 (999) 000-11-22")} className="hidden sm:inline hover:text-amber-300 transition">Открыть ПВЗ</a>
+                <a href="#help" onClick={() => showToast("Служба поддержки 24/7: support@zaru.ru")} className="hover:text-amber-300 transition">Поддержка</a>
+              </div>
+            </div>
+
+            {/* Main Search & Navigation Bar */}
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+              
+              {/* Logo */}
+              <div 
+                onClick={() => { setViewMode("store"); setCurrentTab("home"); setSelectedCategory("Все"); }} 
+                className="cursor-pointer flex items-center gap-2 group"
+              >
+                <div className="w-10 h-10 bg-gradient-to-tr from-amber-400 via-amber-300 to-yellow-500 rounded-2xl flex items-center justify-center font-black text-slate-950 text-2xl tracking-tighter shadow-lg group-hover:scale-105 transition">
+                  Z
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-black tracking-wider leading-none text-white font-mono">ZARU<span className="text-amber-400">.</span></span>
+                  <span className="text-[9px] uppercase tracking-widest text-purple-300 font-bold">Marketplace</span>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              {viewMode === "store" && (
+                <div className="flex-1 max-w-2xl relative hidden sm:block">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Искать на ZARU (например, наушники, кроссовки...)"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-purple-900/50 text-white placeholder-purple-300 text-xs font-semibold px-4 py-3 rounded-2xl pl-11 pr-24 border border-purple-800/80 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-purple-900 transition"
+                    />
+                    <Icon name="search" className="w-4 h-4 text-purple-300 absolute left-4" />
+                    <button
+                      onClick={() => { if(currentTab !== 'home') setCurrentTab('home'); }}
+                      className="absolute right-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs px-4 py-2 rounded-xl hover:brightness-110 transition shadow-md"
+                    >
+                      Найти
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Action Icons */}
+              <div className="flex items-center gap-1 md:gap-3">
+                
+                {/* USER PROFILE & AUTH BUTTON */}
+                <div className="relative">
+                  {currentUser ? (
+                    <button
+                      onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                      className={`flex items-center gap-2 p-1.5 md:px-3 md:py-1.5 rounded-2xl transition border ${
+                        currentTab === "account" 
+                          ? "bg-amber-400 text-slate-950 border-amber-300" 
+                          : "bg-purple-900/60 hover:bg-purple-800 text-white border-purple-500/30"
+                      }`}
+                    >
+                      <div className="w-7 h-7 bg-gradient-to-tr from-amber-400 to-yellow-500 text-purple-950 rounded-xl font-black flex items-center justify-center text-xs shadow">
+                        {currentUser.name.charAt(0)}
+                      </div>
+                      <div className="hidden lg:block text-left">
+                        <span className="text-xs font-black block leading-none">{currentUser.name.split(' ')[0]}</span>
+                        <span className="text-[9px] text-amber-300 font-bold">{currentUser.bonusPoints} баллов</span>
+                      </div>
+                      <Icon name="chevron-down" className="w-3.5 h-3.5 opacity-70 hidden sm:block" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="flex items-center gap-2 bg-purple-900/60 hover:bg-purple-800 text-white font-bold px-3.5 py-2 rounded-2xl border border-purple-500/30 transition text-xs"
+                    >
+                      <Icon name="user" className="w-4 h-4 text-amber-400" />
+                      <span className="hidden sm:inline">Войти</span>
+                    </button>
+                  )}
+
+                  {/* USER POPUP DROPDOWN MENU */}
+                  {isUserMenuOpen && currentUser && (
+                    <div className="absolute top-12 right-0 w-60 bg-white text-slate-900 rounded-3xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in">
+                      <div className="p-3 bg-purple-50 rounded-2xl mb-1 border border-purple-100">
+                        <p className="text-xs font-black text-purple-950">{currentUser.name}</p>
+                        <p className="text-[10px] text-slate-500">{currentUser.email}</p>
+                        <div className="mt-2 flex items-center justify-between text-[10px]">
+                          <span className="bg-purple-800 text-amber-300 px-2 py-0.5 rounded-md font-bold">{currentUser.status}</span>
+                          <span className="font-extrabold text-purple-900">{currentUser.bonusPoints} Б</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => { setCurrentTab("account"); setProfileTab("orders"); setIsUserMenuOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-slate-100 rounded-xl flex items-center gap-2 text-slate-700"
+                      >
+                        <Icon name="package" className="w-4 h-4 text-purple-700" />
+                        <span>Мои заказы</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setCurrentTab("account"); setProfileTab("profile"); setIsUserMenuOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-slate-100 rounded-xl flex items-center gap-2 text-slate-700"
+                      >
+                        <Icon name="user-check" className="w-4 h-4 text-purple-700" />
+                        <span>Личный профиль</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setCurrentTab("account"); setProfileTab("cards"); setIsUserMenuOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-slate-100 rounded-xl flex items-center gap-2 text-slate-700"
+                      >
+                        <Icon name="credit-card" className="w-4 h-4 text-purple-700" />
+                        <span>ZARU Pay / Карты</span>
+                      </button>
+
+                      {currentUser.role === "seller" && (
+                        <button
+                          onClick={() => { setViewMode("seller"); setIsUserMenuOpen(false); }}
+                          className="w-full text-left px-3 py-2 text-xs font-bold bg-amber-50 hover:bg-amber-100 rounded-xl flex items-center gap-2 text-amber-900 my-1 border border-amber-200"
+                        >
+                          <Icon name="store" className="w-4 h-4 text-amber-700" />
+                          <span>Кабинет Продавца</span>
+                        </button>
+                      )}
+
+                      <div className="pt-1 border-t border-slate-100 mt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-2"
+                        >
+                          <Icon name="log-out" className="w-4 h-4" />
+                          <span>Выйти из аккаунта</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Wishlist Button */}
+                <button
+                  onClick={() => { setViewMode("store"); setCurrentTab("wishlist"); }}
+                  className={`relative p-2.5 md:px-3.5 md:py-2 rounded-2xl flex items-center gap-2 text-xs font-bold transition ${
+                    currentTab === "wishlist" && viewMode === "store" ? "bg-amber-400 text-slate-950" : "hover:bg-white/10 text-purple-100"
+                  }`}
+                  title="Избранное"
+                >
+                  <Icon name="heart" className="w-5 h-5" />
+                  <span className="hidden xl:inline">Избранное</span>
+                  {favorites.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-md">
+                      {favorites.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Cart Button */}
+                <button
+                  onClick={() => setIsCartDrawerOpen(true)}
+                  className="relative flex items-center gap-2 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 font-black px-3.5 py-2 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition"
+                >
+                  <Icon name="shopping-cart" className="w-5 h-5" />
+                  <span className="hidden sm:inline text-xs uppercase tracking-wider">Корзина</span>
+                  {cartTotalCount > 0 && (
+                    <span className="bg-purple-950 text-amber-300 font-black text-xs px-2 py-0.5 rounded-full">
+                      {cartTotalCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN CONTAINER CONTENT SWITCHER */}
+          <div className="flex-1">
+
+            {/* VIEW MODE 1: BUYER STORE */}
+            {viewMode === "store" && (
+              <div>
+                
+                {/* TAB: ACCOUNT / ЛИЧНЫЙ КАБИНЕТ */}
+                {currentTab === "account" && (
+                  <main className="max-w-6xl mx-auto px-4 py-8 w-full">
+                    {!currentUser ? (
+                      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 max-w-md mx-auto shadow-xl">
+                        <div className="w-16 h-16 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Icon name="user-x" className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-900">Вы не авторизованы</h3>
+                        <p className="text-xs text-slate-500 mt-2 mb-6">Войдите в профиль ZARU, чтобы просматривать заказы, бонусы и персональные скидки.</p>
+                        <button
+                          onClick={() => setIsAuthModalOpen(true)}
+                          className="bg-gradient-to-r from-purple-700 to-indigo-700 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg hover:brightness-110 transition"
+                        >
+                          Войти или Зарегистрироваться
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        
+                        {/* PROFILE NAVIGATION SIDEBAR */}
+                        <div className="md:col-span-1 space-y-3">
+                          {/* User Brief Card */}
+                          <div className="bg-gradient-to-br from-purple-900 to-indigo-950 text-white p-5 rounded-3xl shadow-lg border border-purple-500/20">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-12 h-12 bg-amber-400 text-slate-950 rounded-2xl font-black text-lg flex items-center justify-center shadow">
+                                {currentUser.name.charAt(0)}
+                              </div>
+                              <div>
+                                <h3 className="font-black text-sm text-white leading-snug">{currentUser.name}</h3>
+                                <span className="text-[10px] text-amber-300 font-bold">{currentUser.status}</span>
+                              </div>
+                            </div>
+
+                            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-xs border border-white/10">
+                              <span className="text-purple-200">Баланс бонусов:</span>
+                              <span className="font-black text-amber-300 text-sm">{currentUser.bonusPoints} ₽</span>
+                            </div>
+                          </div>
+
+                          {/* Profile Nav Links */}
+                          <div className="bg-white rounded-3xl p-3 border border-slate-200 shadow-xs space-y-1">
+                            <button
+                              onClick={() => setProfileTab("orders")}
+                              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition ${
+                                profileTab === "orders" ? "bg-purple-700 text-white shadow-md" : "text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              <Icon name="package" className="w-4 h-4" />
+                              <span>Мои Заказы</span>
+                            </button>
+
+                            <button
+                              onClick={() => setProfileTab("profile")}
+                              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition ${
+                                profileTab === "profile" ? "bg-purple-700 text-white shadow-md" : "text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              <Icon name="user-check" className="w-4 h-4" />
+                              <span>Личные данные</span>
+                            </button>
+
+                            <button
+                              onClick={() => setProfileTab("addresses")}
+                              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition ${
+                                profileTab === "addresses" ? "bg-purple-700 text-white shadow-md" : "text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              <Icon name="map-pin" className="w-4 h-4" />
+                              <span>Адреса и ПВЗ</span>
+                            </button>
+
+                            <button
+                              onClick={() => setProfileTab("cards")}
+                              className={`w-full text-left px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-3 transition ${
+                                profileTab === "cards" ? "bg-purple-700 text-white shadow-md" : "text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              <Icon name="credit-card" className="w-4 h-4" />
+                              <span>ZARU Pay и Карты</span>
+                            </button>
+
+                            <button
+                              onClick={handleLogout}
+                              className="w-full text-left px-4 py-3 rounded-2xl text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition pt-3 border-t border-slate-100 mt-2"
+                            >
+                              <Icon name="log-out" className="w-4 h-4" />
+                              <span>Выйти из аккаунта</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* MAIN PROFILE TAB CONTENT */}
+                        <div className="md:col-span-3">
+
+                          {/* SUB TAB 1: ORDERS */}
+                          {profileTab === "orders" && (
+                            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+                              <h3 className="text-xl font-black mb-6 flex items-center gap-2 text-slate-900">
+                                <Icon name="package" className="w-6 h-6 text-purple-700" />
+                                История моих заказов ({orders.length})
+                              </h3>
+
+                              {orders.length === 0 ? (
+                                <div className="text-center py-12 text-slate-400">
+                                  <Icon name="shopping-bag" className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                                  <p className="font-bold text-slate-700">У вас пока нет активных заказов</p>
+                                  <button onClick={() => setCurrentTab("home")} className="mt-4 bg-purple-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl">
+                                    Перейти к покупкам
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-6">
+                                  {orders.map((order) => (
+                                    <div key={order.id} className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+                                      <div className="flex flex-wrap justify-between items-center border-b border-slate-200 pb-3 gap-2">
+                                        <div>
+                                          <span className="font-black text-sm text-purple-900">Заказ #{order.id}</span>
+                                          <span className="text-xs text-slate-400 block">{order.date}</span>
+                                        </div>
+                                        <span className="bg-purple-100 text-purple-800 font-extrabold text-xs px-3 py-1 rounded-full">
+                                          Статус: {order.status}
+                                        </span>
+                                      </div>
+
+                                      {/* TRACKING PROGRESS BAR */}
+                                      <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Отслеживание доставки ZARU Express</span>
+                                        <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
+                                          <div className={`p-1.5 rounded-lg border ${order.step >= 1 ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-slate-100 text-slate-400"}`}>
+                                            1. Оформлен
+                                          </div>
+                                          <div className={`p-1.5 rounded-lg border ${order.step >= 2 ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-slate-100 text-slate-400"}`}>
+                                            2. В пути
+                                          </div>
+                                          <div className={`p-1.5 rounded-lg border ${order.step >= 3 ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-slate-100 text-slate-400"}`}>
+                                            3. Доставлен в ПВЗ
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-xs text-slate-600">
+                                        <strong>Пункт выдачи:</strong> {order.address}
+                                      </div>
+
+                                      {/* ITEMS LIST */}
+                                      <div className="space-y-2">
+                                        {order.items.map((item) => (
+                                          <div key={item.id} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200">
+                                            <img src={item.image} className="w-12 h-12 object-cover rounded-lg" />
+                                            <div className="flex-1">
+                                              <p className="text-xs font-bold text-slate-800 line-clamp-1">{item.title}</p>
+                                              <span className="text-[10px] text-slate-400">{item.quantity} шт. × {item.price.toLocaleString("ru-RU")} ₽</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      <div className="flex justify-between items-center pt-2 font-black text-sm text-slate-900">
+                                        <span>Оплачено:</span>
+                                        <span className="text-purple-800 text-lg">{order.total.toLocaleString("ru-RU")} ₽</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* SUB TAB 2: PERSONAL DATA */}
+                          {profileTab === "profile" && (
+                            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+                              <h3 className="text-xl font-black mb-6 text-slate-900">Личные данные и контакты</h3>
+
+                              <form onSubmit={(e) => { e.preventDefault(); showToast("Данные успешно сохранены"); }} className="space-y-4 max-w-lg">
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-700 mb-1">ФИО Пользователя</label>
+                                  <input
+                                    type="text"
+                                    value={currentUser.name}
+                                    onChange={(e) => setCurrentUser({ ...currentUser, name: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-700 mb-1">Электронная почта (Email)</label>
+                                  <input
+                                    type="email"
+                                    value={currentUser.email}
+                                    onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-700 mb-1">Номер телефона</label>
+                                  <input
+                                    type="text"
+                                    value={currentUser.phone}
+                                    onChange={(e) => setCurrentUser({ ...currentUser, phone: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                                  />
+                                </div>
+
+                                <button
+                                  type="submit"
+                                  className="bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow transition"
+                                >
+                                  Сохранить изменения
+                                </button>
+                              </form>
+                            </div>
+                          )}
+
+                          {/* SUB TAB 3: ADDRESSES */}
+                          {profileTab === "addresses" && (
+                            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+                              <h3 className="text-xl font-black mb-6 text-slate-900">Мои сохраненные ПВЗ ZARU</h3>
+
+                              <div className="space-y-3 mb-6">
+                                {currentUser.addresses?.map((addr, idx) => (
+                                  <div key={idx} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                    <div className="flex items-center gap-3">
+                                      <Icon name="map-pin" className="w-5 h-5 text-purple-700" />
+                                      <span className="text-xs font-bold text-slate-800">{addr}</span>
+                                    </div>
+                                    {selectedLocation === addr ? (
+                                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2.5 py-1 rounded-full">
+                                        Активный ПВЗ
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setSelectedLocation(addr); showToast("Пункт выдачи выбран"); }}
+                                        className="text-xs font-bold text-purple-700 hover:underline"
+                                      >
+                                        Сделать основным
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Введите новый адрес пункта выдачи..."
+                                  value={newAddressInput}
+                                  onChange={(e) => setNewAddressInput(e.target.value)}
+                                  className="flex-1 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold"
+                                />
+                                <button
+                                  onClick={handleAddAddress}
+                                  className="bg-slate-900 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl hover:bg-slate-800"
+                                >
+                                  Добавить ПВЗ
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* SUB TAB 4: CARDS */}
+                          {profileTab === "cards" && (
+                            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+                              <h3 className="text-xl font-black mb-6 text-slate-900">ZARU Pay — Привязанные карты</h3>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                {currentUser.cards?.map((card) => (
+                                  <div key={card.id} className="bg-gradient-to-tr from-slate-900 to-purple-950 text-white p-5 rounded-2xl shadow-lg relative border border-purple-500/30">
+                                    <span className="text-xs font-black text-amber-400 block mb-3">{card.type}</span>
+                                    <span className="font-mono text-lg font-bold block mb-2">{card.number}</span>
+                                    <span className="text-[10px] text-slate-400">Срок действия: {card.expiry}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                                <h4 className="text-xs font-black text-slate-800">Привязать новую банковскую карту</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="Номер карты (16 цифр)"
+                                    value={newCardInput.number}
+                                    onChange={(e) => setNewCardInput({ ...newCardInput, number: e.target.value })}
+                                    className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="ММ/ГГ"
+                                    value={newCardInput.expiry}
+                                    onChange={(e) => setNewCardInput({ ...newCardInput, expiry: e.target.value })}
+                                    className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold"
+                                  />
+                                </div>
+                                <button
+                                  onClick={handleAddCard}
+                                  className="w-full bg-purple-700 text-white font-extrabold text-xs py-2.5 rounded-xl shadow"
+                                >
+                                  Сохранить карту
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                        </div>
+
+                      </div>
+                    )}
+                  </main>
+                )}
+
+                {/* TAB: WISHLIST / ИЗБРАННОЕ */}
+                {currentTab === "wishlist" && (
+                  <main className="max-w-7xl mx-auto px-4 py-8">
+                    <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                      <Icon name="heart" className="w-7 h-7 text-rose-500" />
+                      Моё Избранное ({favorites.length})
+                    </h2>
+
+                    {favorites.length === 0 ? (
+                      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 max-w-md mx-auto shadow-sm">
+                        <Icon name="heart" className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <h3 className="text-lg font-black text-slate-800">Список отложенных товаров пуст</h3>
+                        <p className="text-xs text-slate-500 mt-1 mb-6">Жмите на сердечко на карточках товаров, чтобы не потерять понравившиеся вещи.</p>
+                        <button
+                          onClick={() => setCurrentTab("home")}
+                          className="bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded-2xl"
+                        >
+                          Перейти к каталогу
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {favorites.map((product) => (
+                          <div key={product.id} className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs hover:shadow-md transition">
+                            <img src={product.image} className="w-full h-36 object-cover rounded-xl mb-3" />
+                            <h4 className="text-xs font-bold text-slate-800 line-clamp-2 h-8">{product.title}</h4>
+                            <div className="mt-2 flex items-center justify-between">
+                              <span className="font-black text-purple-900 text-sm">{product.price.toLocaleString("ru-RU")} ₽</span>
+                              <button
+                                onClick={(e) => addToCart(product, e)}
+                                className="p-2 bg-amber-400 text-slate-950 rounded-xl hover:bg-amber-300"
+                              >
+                                <Icon name="shopping-cart" className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </main>
+                )}
+
+                {/* TAB: CATALOG HOME */}
+                {currentTab === "home" && (
+                  <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+                    
+                    {/* HERO PROMO SLIDER */}
+                    <div className="relative rounded-3xl overflow-hidden shadow-2xl text-white bg-slate-950 min-h-[260px] sm:min-h-[320px] flex items-center border border-purple-500/20">
+                      <div className={`absolute inset-0 bg-gradient-to-r ${HERO_SLIDES[currentSlide].bg} opacity-95 transition-all duration-700`}></div>
+                      
+                      <div className="relative z-10 p-6 sm:p-12 max-w-2xl space-y-3">
+                        <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 bg-white/10 rounded-full backdrop-blur-md ${HERO_SLIDES[currentSlide].accent}`}>
+                          {HERO_SLIDES[currentSlide].tag}
+                        </span>
+                        <h1 className="text-2xl sm:text-4xl font-black leading-tight font-sans tracking-tight">
+                          {HERO_SLIDES[currentSlide].title}
+                        </h1>
+                        <p className="text-xs sm:text-sm text-slate-300 font-medium">
+                          {HERO_SLIDES[currentSlide].subtitle}
+                        </p>
+                        <div className="pt-2">
+                          <button
+                            onClick={() => {
+                              if (HERO_SLIDES[currentSlide].category !== "Все") {
+                                setSelectedCategory(HERO_SLIDES[currentSlide].category);
+                              }
+                            }}
+                            className="bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs sm:text-sm px-6 py-3 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition flex items-center gap-2"
+                          >
+                            <span>{HERO_SLIDES[currentSlide].btnText}</span>
+                            <Icon name="arrow-right" className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Dots Pagination */}
+                      <div className="absolute bottom-4 right-6 flex gap-2 z-10">
+                        {HERO_SLIDES.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentSlide(idx)}
+                            className={`h-2 rounded-full transition-all ${
+                              currentSlide === idx ? "w-6 bg-amber-400" : "w-2 bg-white/40"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* CATEGORY BAR */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Популярные Категории</h3>
+                        <span className="text-xs font-bold text-purple-700">Всего позиций: {filteredProducts.length}</span>
+                      </div>
+
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                        {["Все", "Электроника", "Одежда & Обувь", "Дом & Быт", "Красота & Здоровье"].map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-5 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition border ${
+                              selectedCategory === cat
+                                ? "bg-purple-900 text-white border-purple-800 shadow-md"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* PRODUCT GRID */}
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 mb-4 tracking-tight">Рекомендуем вам</h3>
+
+                      {filteredProducts.length === 0 ? (
+                        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
+                          <Icon name="alert-circle" className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                          <p className="font-bold text-slate-600">Ничего не найдено по вашему запросу</p>
+                          <button onClick={() => { setSearchQuery(""); setSelectedCategory("Все"); }} className="mt-3 text-xs text-purple-700 font-bold underline">
+                            Сбросить фильтры
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {filteredProducts.map((product) => {
+                            const isFav = favorites.some((f) => f.id === product.id);
+                            return (
+                              <div
+                                key={product.id}
+                                onClick={() => setSelectedProduct(product)}
+                                className="bg-white rounded-3xl border border-slate-200/80 p-3 flex flex-col justify-between hover:shadow-xl transition-all duration-300 group cursor-pointer relative"
+                              >
+                                {/* Favorite Heart Button */}
+                                <button
+                                  onClick={(e) => toggleFavorite(product, e)}
+                                  className={`absolute top-5 right-5 z-10 p-2 rounded-full backdrop-blur-md transition ${
+                                    isFav ? "bg-rose-50 text-rose-500" : "bg-white/80 text-slate-400 hover:text-slate-600"
+                                  }`}
+                                >
+                                  <Icon name="heart" className={`w-4 h-4 ${isFav ? "fill-rose-500" : ""}`} />
+                                </button>
+
+                                <div>
+                                  {/* Product Image */}
+                                  <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-square mb-3">
+                                    <img
+                                      src={product.image}
+                                      alt={product.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                    />
+                                    {product.isNew && (
+                                      <span className="absolute top-2 left-2 bg-purple-900 text-amber-300 font-black text-[9px] px-2 py-0.5 rounded-md">
+                                        NEW
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Title & Category */}
+                                  <span className="text-[10px] font-bold text-purple-700 block uppercase tracking-wider mb-1">{product.category}</span>
+                                  <h4 className="text-xs font-bold text-slate-800 line-clamp-2 h-8 leading-snug group-hover:text-purple-900 transition">
+                                    {product.title}
+                                  </h4>
+
+                                  {/* Rating & Reviews */}
+                                  <div className="flex items-center gap-1.5 mt-2 text-[11px]">
+                                    <span className="flex items-center text-amber-500 font-black">
+                                      ★ {product.rating}
+                                    </span>
+                                    <span className="text-slate-400 text-[10px]">({product.reviewsCount})</span>
+                                  </div>
+                                </div>
+
+                                {/* Price & Add to Cart */}
+                                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                  <div>
+                                    <span className="text-xs font-black text-slate-900 block leading-none">
+                                      {product.price.toLocaleString("ru-RU")} ₽
+                                    </span>
+                                    {product.oldPrice && (
+                                      <span className="text-[10px] text-slate-400 line-through font-medium">
+                                        {product.oldPrice.toLocaleString("ru-RU")} ₽
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    onClick={(e) => addToCart(product, e)}
+                                    className="p-2.5 bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 font-black rounded-2xl shadow-md hover:brightness-110 active:scale-90 transition"
+                                    title="Добавить в корзину"
+                                  >
+                                    <Icon name="shopping-cart" className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </main>
+                )}
+
+              </div>
+            )}
+
+            {/* VIEW MODE 2: ZARU SELLER STUDIO */}
+            {viewMode === "seller" && (
+              <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+                {/* Seller Top Bar */}
+                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex justify-between items-center flex-wrap gap-4 border border-purple-500/20">
+                  <div>
+                    <span className="bg-amber-400 text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
+                      ZARU SELLER STUDIO
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black mt-2">Кабинет Продавца — {currentUser?.name || "Партнер"}</h2>
+                    <p className="text-xs text-purple-200 mt-1">Управляйте ассортиментом, ценами и следите за заказами в реальном времени</p>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/10 min-w-[120px]">
+                      <span className="text-[10px] text-purple-200 block uppercase font-bold">Выручка за месяц</span>
+                      <span className="text-xl font-black text-amber-300">184,200 ₽</span>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/10 min-w-[120px]">
+                      <span className="text-[10px] text-purple-200 block uppercase font-bold">Заказов сегодня</span>
+                      <span className="text-xl font-black text-amber-300">24 шт.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column: Add Product Form */}
+                  <div className="lg:col-span-1 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+                    <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <Icon name="plus-circle" className="w-5 h-5 text-purple-700" />
+                      Загрузить новый товар
+                    </h3>
+
+                    <form onSubmit={handleAddProduct} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Название товара *</label>
+                        <input
+                          type="text"
+                          placeholder="Например: Кроссовки ZARU Sport"
+                          value={newProductForm.title}
+                          onChange={(e) => setNewProductForm({ ...newProductForm, title: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Категория</label>
+                          <select
+                            value={newProductForm.category}
+                            onChange={(e) => setNewProductForm({ ...newProductForm, category: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold"
+                          >
+                            <option value="Электроника">Электроника</option>
+                            <option value="Одежда & Обувь">Одежда & Обувь</option>
+                            <option value="Дом & Быт">Дом & Быт</option>
+                            <option value="Красота & Здоровье">Красота & Здоровье</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Остаток (шт.)</label>
+                          <input
+                            type="number"
+                            placeholder="50"
+                            value={newProductForm.stock}
+                            onChange={(e) => setNewProductForm({ ...newProductForm, stock: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Цена продажи (₽) *</label>
+                          <input
+                            type="number"
+                            placeholder="2990"
+                            value={newProductForm.price}
+                            onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Старая цена (₽)</label>
+                          <input
+                            type="number"
+                            placeholder="4500"
+                            value={newProductForm.oldPrice}
+                            onChange={(e) => setNewProductForm({ ...newProductForm, oldPrice: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Ссылка на изображение</label>
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/..."
+                          value={newProductForm.image}
+                          onChange={(e) => setNewProductForm({ ...newProductForm, image: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Описание товара</label>
+                        <textarea
+                          rows="3"
+                          placeholder="Подробные характеристики и плюсы..."
+                          value={newProductForm.description}
+                          onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-bold"
+                        ></textarea>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black py-3 rounded-xl shadow-md transition text-xs uppercase tracking-wider"
+                      >
+                        Отправить карточку в каталог
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Right Column: Seller Products Inventory Table */}
+                  <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+                    <h3 className="text-lg font-black text-slate-900 flex items-center justify-between">
+                      <span>Мои товары в витрине ZARU</span>
+                      <span className="text-xs bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-bold">Всего: {products.length}</span>
+                    </h3>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] font-black">
+                            <th className="py-3 px-2">Товар</th>
+                            <th className="py-3 px-2">Категория</th>
+                            <th className="py-3 px-2">Цена</th>
+                            <th className="py-3 px-2">Остаток</th>
+                            <th className="py-3 px-2">Модерация</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {products.map((p) => (
+                            <tr key={p.id} className="hover:bg-slate-50 font-bold">
+                              <td className="py-3 px-2 flex items-center gap-3">
+                                <img src={p.image} className="w-10 h-10 object-cover rounded-xl" />
+                                <span className="line-clamp-1 max-w-[180px] text-slate-800">{p.title}</span>
+                              </td>
+                              <td className="py-3 px-2 text-slate-500">{p.category}</td>
+                              <td className="py-3 px-2 text-purple-900 font-extrabold">{p.price.toLocaleString("ru-RU")} ₽</td>
+                              <td className="py-3 px-2">{p.stock} шт.</td>
+                              <td className="py-3 px-2">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${
+                                  p.status === "approved" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                                }`}>
+                                  {p.status === "approved" ? "Опубликован" : "На проверке"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </main>
+            )}
+
+            {/* VIEW MODE 3: ADMIN & LOGISTICS */}
+            {viewMode === "admin" && (
+              <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+                {/* Admin Header Banner */}
+                <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl flex justify-between items-center flex-wrap gap-4 border border-slate-800">
+                  <div>
+                    <span className="bg-purple-600 text-white font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
+                      SUPER ADMIN & LOGISTICS CONTROL
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black mt-2">Панель Управления ZARU Platform</h2>
+                    <p className="text-xs text-slate-400 mt-1">Модерация карточек продавцов, комиссия платформы и логистика ПВЗ</p>
+                  </div>
+
+                  <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-center min-w-[200px]">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Комиссия Маркетплейса</span>
+                    <div className="flex items-center justify-center gap-2 mt-1">
+                      <span className="text-2xl font-black text-amber-400">{commissionRate}%</span>
+                      <input
+                        type="range"
+                        min="5"
+                        max="25"
+                        value={commissionRate}
+                        onChange={(e) => setCommissionRate(e.target.value)}
+                        className="w-20 accent-amber-400 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Moderation Queue */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+                  <h3 className="text-lg font-black text-slate-900 flex items-center justify-between">
+                    <span>Очередь модерации карточек товаров</span>
+                    <span className="text-xs text-slate-400">Нажмите «Одобрить», чтобы товар появился в общем каталоге ZARU</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {products.map((prod) => (
+                      <div key={prod.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex justify-between flex-col">
+                        <div className="flex gap-3 mb-3">
+                          <img src={prod.image} className="w-16 h-16 object-cover rounded-xl" />
+                          <div>
+                            <span className="text-[9px] font-black text-purple-700 uppercase">{prod.category}</span>
+                            <h4 className="text-xs font-bold text-slate-800 line-clamp-1">{prod.title}</h4>
+                            <p className="text-[10px] text-slate-500">Продавец: {prod.seller}</p>
+                            <p className="text-xs font-black text-slate-900 mt-1">{prod.price} ₽</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-slate-200">
+                          {prod.status === "approved" ? (
+                            <button
+                              onClick={() => handleModeration(prod.id, "pending")}
+                              className="w-full bg-rose-100 text-rose-700 font-bold text-xs py-2 rounded-xl hover:bg-rose-200 transition"
+                            >
+                              Снять с публикации
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleModeration(prod.id, "approved")}
+                              className="w-full bg-emerald-600 text-white font-bold text-xs py-2 rounded-xl hover:bg-emerald-700 shadow transition"
+                            >
+                              Одобрить и опубликовать
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </main>
+            )}
+
+          </div>
+
+          {/* PRODUCT DETAIL MODAL */}
+          {selectedProduct && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto">
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition"
+                >
+                  <Icon name="x" className="w-5 h-5" />
+                </button>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="rounded-2xl overflow-hidden bg-slate-100">
+                    <img src={selectedProduct.image} className="w-full h-full object-cover" />
+                  </div>
+
+                  <div className="flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-xs font-extrabold text-purple-700 uppercase tracking-wider">{selectedProduct.category}</span>
+                      <h2 className="text-lg font-black text-slate-900 mt-1 leading-snug">{selectedProduct.title}</h2>
+                      
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-amber-500 font-black text-xs">★ {selectedProduct.rating}</span>
+                        <span className="text-slate-400 text-xs">({selectedProduct.reviewsCount} отзывов)</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-xs text-slate-500 font-medium">Продавец: <strong className="text-slate-800">{selectedProduct.seller}</strong></span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 mt-4 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        {selectedProduct.description}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-3 mb-4">
+                        <span className="text-2xl font-black text-slate-900">{selectedProduct.price.toLocaleString("ru-RU")} ₽</span>
+                        {selectedProduct.oldPrice && (
+                          <span className="text-sm text-slate-400 line-through font-bold">{selectedProduct.oldPrice.toLocaleString("ru-RU")} ₽</span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                          className="flex-1 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                        >
+                          <Icon name="shopping-cart" className="w-4 h-4" />
+                          Добавить в корзину
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CART DRAWER SLIDE-OUT */}
+          {isCartDrawerOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex justify-end animate-in fade-in">
+              <div className="bg-white w-full max-w-md h-full flex flex-col justify-between p-6 shadow-2xl relative">
+                
+                {/* Header */}
+                <div className="flex justify-between items-center pb-4 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Icon name="shopping-cart" className="w-6 h-6 text-purple-900" />
+                    <h3 className="text-lg font-black text-slate-900">Корзина ZARU</h3>
+                    <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-0.5 rounded-full">{cartTotalCount}</span>
+                  </div>
+                  <button onClick={() => setIsCartDrawerOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+                    <Icon name="x" className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+
+                {/* Items List */}
+                <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-16 text-slate-400">
+                      <Icon name="shopping-bag" className="w-16 h-16 mx-auto mb-3 opacity-20" />
+                      <p className="font-bold text-slate-600">Ваша корзина пока пуста</p>
+                      <span className="text-xs text-slate-400 block mt-1">Добавьте понравившиеся товары из каталога</span>
+                    </div>
+                  ) : (
+                    cart.map((item) => (
+                      <div key={item.id} className="flex gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 items-center">
+                        <img src={item.image} className="w-16 h-16 object-cover rounded-xl" />
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-slate-800 line-clamp-1">{item.title}</h4>
+                          <span className="text-xs font-black text-purple-900 block mt-1">{item.price.toLocaleString("ru-RU")} ₽</span>
+                          
+                          {/* Quantity Counter */}
+                          <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center bg-white rounded-lg border border-slate-200">
+                              <button onClick={() => updateCartQuantity(item.id, -1)} className="px-2 py-0.5 font-bold hover:bg-slate-100">-</button>
+                              <span className="px-2 text-xs font-black">{item.quantity}</span>
+                              <button onClick={() => updateCartQuantity(item.id, 1)} className="px-2 py-0.5 font-bold hover:bg-slate-100">+</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Footer Checkout */}
+                {cart.length > 0 && (
+                  <div className="pt-4 border-t border-slate-200 space-y-3">
+                    <div className="flex justify-between items-center text-xs text-slate-500">
+                      <span>Пункт выдачи (ПВЗ):</span>
+                      <span className="font-bold text-slate-800 line-clamp-1 max-w-[200px]">{selectedLocation}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-900 font-black text-lg">
+                      <span>Итого к оплате:</span>
+                      <span className="text-purple-900">{cartTotalPrice.toLocaleString("ru-RU")} ₽</span>
+                    </div>
+                    <button
+                      onClick={handleCheckout}
+                      className="w-full bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 text-white font-black py-4 rounded-2xl shadow-xl hover:brightness-110 transition text-xs uppercase tracking-wider"
+                    >
+                      Оформить заказ в ZARU
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AUTHENTICATION MODAL (LOGIN & REGISTRATION) */}
+          {isAuthModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative border border-slate-100">
+                <button
+                  onClick={() => setIsAuthModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition"
+                >
+                  <Icon name="x" className="w-5 h-5" />
+                </button>
+
+                {/* Auth Mode Toggle */}
+                <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
+                  <button
+                    onClick={() => setAuthTab("login")}
+                    className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${
+                      authTab === "login" ? "bg-purple-700 text-white shadow-md" : "text-slate-600"
+                    }`}
+                  >
+                    Вход в аккаунт
+                  </button>
+                  <button
+                    onClick={() => setAuthTab("register")}
+                    className={`flex-1 py-2.5 text-xs font-black rounded-xl transition ${
+                      authTab === "register" ? "bg-purple-700 text-white shadow-md" : "text-slate-600"
+                    }`}
+                  >
+                    Регистрация
+                  </button>
+                </div>
+
+                {/* LOGIN FORM */}
+                {authTab === "login" && (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Email или Номер телефона</label>
+                      <input
+                        type="email"
+                        placeholder="alex@zaru.ru"
+                        value={authForm.email}
+                        onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Пароль</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={authForm.password}
+                        onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black py-3 rounded-xl shadow-lg transition text-xs uppercase tracking-wider"
+                    >
+                      Войти в ZARU
+                    </button>
+
+                    {/* Demo Fast Login Preset */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentUser(DEMO_USER);
+                        setIsAuthModalOpen(false);
+                        showToast("Вы вошли под тестовым аккаунтом!");
+                      }}
+                      className="w-full bg-amber-100 text-amber-900 font-bold py-2.5 rounded-xl text-xs border border-amber-200 hover:bg-amber-200 transition"
+                    >
+                      Быстрый демо-вход (Александр)
+                    </button>
+                  </form>
+                )}
+
+                {/* REGISTRATION FORM */}
+                {authTab === "register" && (
+                  <form onSubmit={handleRegister} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">ФИО *</label>
+                      <input
+                        type="text"
+                        placeholder="Иванов Иван Иванович"
+                        value={authForm.name}
+                        onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        placeholder="user@zaru.ru"
+                        value={authForm.email}
+                        onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Телефон</label>
+                      <input
+                        type="text"
+                        placeholder="+7 (900) 123-45-67"
+                        value={authForm.phone}
+                        onChange={(e) => setAuthForm({ ...authForm, phone: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Пароль *</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={authForm.password}
+                        onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Тип аккаунта</label>
+                      <select
+                        value={authForm.role}
+                        onChange={(e) => setAuthForm({ ...authForm, role: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold"
+                      >
+                        <option value="buyer">Покупатель</option>
+                        <option value="seller">Продавец (Селлер ZARU)</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-black py-3 rounded-xl shadow-lg transition text-xs uppercase tracking-wider mt-2"
+                    >
+                      Зарегистрироваться
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* FOOTER */}
+          <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-800 text-xs">
+            <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+              <div>
+                <h4 className="text-white font-black text-sm mb-3">Покупателям</h4>
+                <ul className="space-y-2">
+                  <li><a href="#" className="hover:text-white">Как сделать заказ</a></li>
+                  <li><a href="#" className="hover:text-white">Способы оплаты</a></li>
+                  <li><a href="#" className="hover:text-white">Доставка в ПВЗ</a></li>
+                  <li><a href="#" className="hover:text-white">Возврат товара</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-black text-sm mb-3">Партнерам</h4>
+                <ul className="space-y-2">
+                  <li><a href="#" onClick={() => setViewMode("seller")} className="hover:text-white">Продавайте на ZARU</a></li>
+                  <li><a href="#" className="hover:text-white">Открыть пункт выдачи</a></li>
+                  <li><a href="#" className="hover:text-white">Личный кабинет продавца</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-black text-sm mb-3">Компания ZARU</h4>
+                <ul className="space-y-2">
+                  <li><a href="#" className="hover:text-white">О нас</a></li>
+                  <li><a href="#" className="hover:text-white">Пресс-центр</a></li>
+                  <li><a href="#" className="hover:text-white">Контакты и реквизиты</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-black text-sm mb-3">Мы в соцсетях</h4>
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center text-white cursor-pointer hover:bg-purple-700">Telegram</div>
+                  <div className="w-8 h-8 bg-slate-800 rounded-xl flex items-center justify-center text-white cursor-pointer hover:bg-purple-700">VK</div>
+                </div>
+              </div>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 border-t border-slate-900 pt-6 text-center text-slate-500 text-[11px]">
+              © 2026 ZARU Marketplace. Все права защищены.
+            </div>
+          </footer>
+
+        </div>
+      );
+    }
+
+    // Render React App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ZaruMarketplace />);
+  </script>
+</body>
+</html>
